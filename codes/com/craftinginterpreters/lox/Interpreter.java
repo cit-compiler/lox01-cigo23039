@@ -1,4 +1,4 @@
-package codes.com.craftinginterpreters.lox;
+package com.craftinginterpreters.lox;
 
 class Interpreter implements Expr.Visitor<Object> {
 
@@ -25,6 +25,15 @@ class Interpreter implements Expr.Visitor<Object> {
 
         // Unreachable.
         return null;
+    }
+
+    void interpret(Expr expression) { 
+        try {
+            Object value = evaluate(expression);
+            System.out.println(stringify(value));
+        } catch (RuntimeError error) {
+            Lox.runtimeError(error);
+        }
     }
 
     private void checkNumberOperand(Token operator, Object operand){
@@ -101,6 +110,20 @@ class Interpreter implements Expr.Visitor<Object> {
         }   
         // Unreachable.
         return null;
+    }
+ 
+    private String stringify(Object object) {
+        if (object == null) return "nil";
+
+        if (object instanceof Double) {
+            String text = object.toString();
+            if (text.endsWith(".0")) {
+                text = text.substring(0, text.length() - 2);
+            }
+            return text;
+        }
+
+        return object.toString();
     }
 
 }
