@@ -1,4 +1,4 @@
-package com.craftinginterpreters.lox;
+package codes.com.craftinginterpreters.lox;
 
 import java.util.List;
 

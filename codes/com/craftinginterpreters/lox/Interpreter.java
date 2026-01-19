@@ -1,8 +1,20 @@
-package com.craftinginterpreters.lox;
+package codes.com.craftinginterpreters.lox;
 
 import java.util.List;
 
-class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
+class Interpreter implements Expr.Visitor<Object>,
+                             Stmt.Visitor<Void> {
+    private Environment environment = new Environment();
+
+    void interpret(List<Stmt> statements){
+        try{
+            for (Stmt statement : statements){
+                execute(statement);
+            }
+        }catch(RuntimeError error){
+            Lox.runtimeError(error);
+        }
+    }
 
     @Override
     public Object visitLiteralExpr(Expr.Literal expr){
@@ -22,6 +34,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             case BANG:
                 return !isTruthy(right);
             case MINUS:
+                checkNumberOperand(expr.operator, right);
                 return -(double)right;
         }
 
@@ -29,17 +42,10 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return null;
     }
 
-    void interpret(List<Stmt> statements) {
-        try {
-            for (Stmt statement : statements) {
-                execute(statement);
-            }
-        } catch (RuntimeError error) {
-            Lox.runtimeError(error);
-        }
+    @Override
+    public Object visitVariableExpr(Expr.Variable expr){
+        return environment.get(expr.name);
     }
-
-    
 
     private void checkNumberOperand(Token operator, Object operand){
         if(operand instanceof Double) return;
@@ -66,27 +72,59 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return a.equals(b);
     }
 
+    private String stringify(Object object){
+        if (object == null)return "nul";
+
+        if (object instanceof Double){
+            String text = object.toString();
+            if(text.endsWith(".0")){
+                text = text.substring(0,text.length() - 2);
+            }
+            return text;
+        }
+        return object.toString();
+    }
+
 
     private Object evaluate(Expr expr){
         return expr.accept(this);
     }
 
-    private void execute(Stmt stmt) {
+    private void execute(Stmt stmt){
         stmt.accept(this);
     }
 
     @Override
-    public Void visitExpressionStmt(Stmt.Expression stmt) {
+    public Void visitExpressionStmt(Stmt.Expression stmt){
         evaluate(stmt.expression);
         return null;
     }
 
     @Override
-    public Void visitPrintStmt(Stmt.Print stmt) {
+    public Void visitPrintStmt(Stmt.Print stmt){
         Object value = evaluate(stmt.expression);
         System.out.println(stringify(value));
         return null;
     }
+
+    @Override
+    public Void visitVarStmt(Stmt.Var stmt){
+        Object value = null;
+        if(stmt.initializer != null){
+            value = evaluate(stmt.initializer);
+        }
+
+        environment.define(stmt.name.lexeme, value);
+        return null;
+    }
+
+    @Override
+    public Object visitAssignExpr(Expr.Assign expr) {
+        Object value = evaluate(expr.value);
+        environment.assign(expr.name, value);
+        return value;
+    }
+
 
     @Override
     public Object visitBinaryExpr(Expr.Binary expr) {
@@ -132,20 +170,6 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         }   
         // Unreachable.
         return null;
-    }
- 
-    private String stringify(Object object) {
-        if (object == null) return "nil";
-
-        if (object instanceof Double) {
-            String text = object.toString();
-            if (text.endsWith(".0")) {
-                text = text.substring(0, text.length() - 2);
-            }
-            return text;
-        }
-
-        return object.toString();
     }
 
 }
