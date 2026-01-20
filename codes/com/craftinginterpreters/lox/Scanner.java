@@ -101,6 +101,8 @@ class Scanner {
                 break;
             case '"': string(); break;
 
+            case '\'': string(); break;
+
             default:
                 if(isDigit(c)){
                     number();
@@ -123,7 +125,8 @@ class Scanner {
     }
 
     private void string(){
-        while(peek() != '"' && !isAtEnd()){
+        char quote = source.charAt(start);
+        while(peek() != quote && !isAtEnd()){
             if(peek() == '\n') line++;
             advance();
         }
